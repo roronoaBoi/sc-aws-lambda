@@ -19,58 +19,59 @@ const options = {
   }
 };
 
+async function getUrl(event){
+    const hookBody = JSON.parse(event.body);
+    const {id: recId} = hookBody.resource;
+    return `${rootUrl}${amUrl}/${recId}/details`
+};
+
+async function callApi(url){
+    const response = await fetch(url,options);
+    if(!response.ok) {
+        console.log('safetyculture api call failed');
+        return {
+            statusCode: response.status,
+            body: JSON.stringify({message: 'failed to fetch data from safetyculture'})
+        };
+    }
+    const data = await response.json();
+    return data
+};
+
+async function createPayload(data) {
+    const {metadata, template} = data.inspection;
+    const payload = {
+        id: metadata.inspection_id,
+        title: metadata.inspection_name,
+        site_id: metadata.site.site_id,
+        site_name: metadata.site.site_name,
+        template_id: template.template_id,
+        template_name: template.template_name,
+        last_modified_by_id: metadata.last_modified_by.id,
+        last_modified_by_name: metadata.last_modified_by.name
+      };
+      return payload
+};
+
+async function writeToDb(payload) {
+    const command = new PutCommand(
+        {
+            TableName: table,
+            Item: (payload)
+        }
+    );
+    const dynResponse = await dynamoDb.send(command);
+    if(dynResponse.$metadata.httpStatusCode !== 200) {
+        console.log('failed to write payload to table...')
+        return
+    }
+    console.log('payload written!')
+};
+
 //main handler
 export const handler = async (event) => {
-  const hookBody = JSON.parse(event.body);
-  const {id: recId} = hookBody.resource;
-
-  const url = `${rootUrl}${amUrl}/${recId}/details`;
-
-  const response = await fetch(url, options);
-  if (!response.ok) {
-    console.log('fetch failed');
-    return {
-      statusCode: response.status,
-      body: JSON.stringify({ message: 'Failed to fetch data' })
-    };
-  }
-
-  const data = await response.json();
-
-  //create payload depending on sc api
-  const {metadata, template } = data.inspection;
-  const payload = {
-    id: metadata.inspection_id,
-    title: metadata.inspection_name,
-    site_id: metadata.site.site_id,
-    site_name: metadata.site.site_name,
-    template_id: template.template_id,
-    template_name: template.template_name,
-    last_modified_by_id: metadata.last_modified_by.id,
-    last_modified_by_name: metadata.last_modified_by.name
-  };
-
-  console.log('writing to db...');
-
-//write to dynamoDB
-  const write = async (arg) => {
-    const command = new PutCommand(
-      {
-        TableName: table,
-        Item: arg
-      }
-    );
-
-    const dynResponse = await dynamoDb.send(command);
-    if(!dynResponse.ok) {
-      console.log('failed to write payload')
-      return
-    }
-    return dynResponse;
-  };
-
-await write(payload)
-
-console.log('payload written!')
-
+const scUrl = await getUrl(event);
+const scData = await callApi(scUrl);
+const scPayload = await createPayload(scData);
+await writeToDb(scPayload)
 };
