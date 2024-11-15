@@ -20,9 +20,8 @@ const options = {
 };
 
 async function getUrl(event){
-    const hookBody = JSON.parse(event.body);
-    const {id: recId} = hookBody.resource;
-    return `${rootUrl}${amUrl}/${recId}/details`
+    const insId = event.resource.id
+    return `${rootUrl}${amUrl}/${insId}/details`
 };
 
 async function callApi(url){
@@ -70,8 +69,8 @@ async function writeToDb(payload) {
 
 //main handler
 export const handler = async (event) => {
-const scUrl = await getUrl(event);
-const scData = await callApi(scUrl);
-const scPayload = await createPayload(scData);
-await writeToDb(scPayload)
+    const scUrl = await getUrl(event);
+    const scData = await callApi(scUrl);
+    const scPayload = await createPayload(scData);
+    await writeToDb(scPayload)
 };
