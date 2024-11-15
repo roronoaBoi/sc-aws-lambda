@@ -1,5 +1,5 @@
 # Logging Inspections to DynamoBD
-This example demonstrates how inspections can be easily logged to a data source, supporting reporting and automation efforts.
+This example demonstrates how inspections can be easily logged to a data source from a trigger event, supporting reporting and automation efforts.
 
 ## Workflow Illustration
 ```mermaid
