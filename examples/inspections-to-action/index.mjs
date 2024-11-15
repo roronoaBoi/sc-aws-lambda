@@ -38,7 +38,6 @@ async function getAssetId(items) {
 
 async function createAction(data) {
     const { metadata } = data.inspection;
-    const insId = metadata.inspection_id
     const insTitle = metadata.inspection_name
     const siteId = metadata.site.site_id
     const assetId = await getAssetId(data.inspection.items)
